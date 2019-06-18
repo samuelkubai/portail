@@ -1,0 +1,196 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Open Sans', sans-serif;
+}
+
+.pg-home {
+    width: 320px;
+    height: 450px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    /*border: 1px solid #B5C4CF;*/
+    /*border-radius: 8px;*/
+    padding: 24px 12px;
+}
+
+.c-title {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.c-title__logo {
+    color: #153C55;
+    font-size: 14px;
+    line-height: 19px;
+}
+
+.c-title__logo-highlight {
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 22px;
+}
+
+.c-title__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.c-title__actions li {
+    cursor: pointer;
+}
+
+.c-title__actions li img {
+    height: 16px;
+    width: 16px;
+}
+
+.c-title__actions li:not(:first-child) {
+    margin-left: 12px;
+}
+
+
+/* Sources List component*/
+.c-sources-list {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    list-style: none;
+    padding: 0;
+    margin: 32px 0 0;
+}
+
+.c-source {
+    width: 116px;
+    height: 72px;
+
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    background: #FFFFFF;
+    border: 1px solid #153C55;
+    border-radius: 8px;
+    color: #153C55;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 16px;
+    text-align: center;
+}
+
+.c-source--active {
+    background: #0068A6;
+    border: 1px solid #0068A6;
+    color: white;
+}
+
+.c-source__label {
+    margin-top: 8px;
+}
+
+/* Input list component */
+.c-input-list {
+    width: 100%;
+
+    margin-top: 64px;
+    margin-bottom: 48px;
+}
+
+.c-input-list__title {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    margin-bottom: -12px;
+}
+
+.c-input-list__link {
+    border: none;
+    color: #B5C4CF;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 16px;
+    padding: 0 0 0 0;
+    text-align: right;
+    outline: none;
+}
+
+.c-input {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-top: 24px;
+}
+
+.c-input__button {
+    width: 48px;
+    height: 40px;
+
+    background: #DFE6EB;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    outline: none;
+}
+
+.c-input__button--active {
+    background: #EDF8FF;
+}
+
+.c-input__options {
+    width: 236px;
+    height: 40px;
+
+    background: #FFFFFF;
+    border: 1px solid #B5C4CF;
+    border-radius: 8px;
+    color: #153C55;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.c-input__options:focus, .c-input__options:active {
+    outline: none;
+}
+
+/* Button component */
+.c-button {
+    width: 296px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.c-button--primary {
+    background: #C7000F;
+    color: #FFFFFF;
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 16px;
+}
