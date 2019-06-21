@@ -1,10 +1,10 @@
-import { app, BrowserWindow } from 'electron';
+import electron, { app, BrowserWindow } from 'electron';
 import { menubar } from 'menubar';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import { enableLiveReload } from 'electron-compile';
 
 // TODO: Activate the menubar here.
-menubar({
+let mainMenu = menubar({
   browserWindow: {
     width: 320,
     height: 450,
@@ -13,8 +13,6 @@ menubar({
   index: `file://${__dirname}/index.html`,
 });
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 
 const isDevMode = process.execPath.match(/[\\/]electron/);
@@ -46,6 +44,40 @@ const createWindow = async () => {
   });
 };
 
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+let webcamPlayer;
+
+const createWebcamPlayer = async () => {
+  let display = electron.screen.getPrimaryDisplay();
+  let height = display.bounds.height;
+
+  // Create the browser window.
+  webcamPlayer = new BrowserWindow({
+    x: 0,
+    y: height - 200,
+    width: 200,
+    height: 200,
+    alwaysOnTop: true,
+    frame: false,
+    movable: false,
+    transparent: true,
+  });
+
+  // and load the index.html of the app.
+  webcamPlayer.loadURL(`file://${__dirname}/webcam.html`);
+
+  webcamPlayer.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  // Emitted when the window is closed.
+  webcamPlayer.on('closed', () => {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    webcamPlayer = null;
+  });
+};
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -63,8 +95,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow();
+  if (webcamPlayer === null) {
+    createWebcamPlayer();
   }
 });
 

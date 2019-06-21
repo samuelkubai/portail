@@ -53,7 +53,8 @@
     "menubar": "^6.0.5",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",
-    "react-hot-loader": "^3.0.0-beta.6"
+    "react-hot-loader": "^3.0.0-beta.6",
+    "recordrtc": "^5.5.7"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
