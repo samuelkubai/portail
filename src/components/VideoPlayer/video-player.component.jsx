@@ -86,15 +86,49 @@ export default class VideoPlayer extends Component {
     }
   }
 
-  record() {
-    desktopCapturer.getSources({ types: ['window', 'screen'] }, (error, sources) => {
-      sources.forEach((source) => {
-        if (source.name === 'Screen 2') {
-          try {
-            VideoPlayer.getUserMedia(source).then((stream) => {
-              const recorder = VideoPlayer.startRecording(stream);
+  layerAudio(stream, cb) {
+    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(function(mediaStream){
+      const audioTracks = mediaStream.getAudioTracks();
+      console.log(audioTracks);
 
-              this.setState(state => Object.assign(state, { recorder }));
+      // mix audio tracks
+      if(audioTracks.length > 0){
+        const mixAudioTrack = VideoPlayer.mixTracks(audioTracks);
+        stream.addTrack(mixAudioTrack);
+      }
+      cb(stream);
+    }).catch(function(err) {
+      console.log("Layering audio error");
+      console.log(err);
+    });
+
+    return stream;
+  }
+
+  static mixTracks(tracks) {
+    const ac = new AudioContext();
+    const dest = ac.createMediaStreamDestination();
+
+    tracks.forEach((track) => {
+      const source = ac.createMediaStreamSource(new MediaStream([track]));
+      source.connect(dest);
+    });
+
+    return dest.stream.getTracks()[0];
+  }
+
+  record() {
+    const { source } = this.props;
+
+    desktopCapturer.getSources({ types: ['window', 'screen'] }, (error, sources) => {
+      sources.forEach((s) => {
+        if (s.name === source.name) {
+          try {
+            VideoPlayer.getUserMedia(s).then((stream) => {
+              this.layerAudio(stream, streamWithAudio => {
+                const recorder = VideoPlayer.startRecording(streamWithAudio);
+                this.setState(state => Object.assign(state, { recorder }));
+              });
             });
           } catch (e) {
             console.log(e);
@@ -112,5 +146,10 @@ export default class VideoPlayer extends Component {
 }
 
 VideoPlayer.propTypes = {
+  source: PropTypes.object,
   recording: PropTypes.bool.isRequired,
+};
+
+VideoPlayer.defaultProps = {
+  source: {}
 };

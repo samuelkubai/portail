@@ -35,7 +35,13 @@ export default class Input extends Component {
         <select className="c-input__options" name={name} id={`id-${name}`}>
           {
             options.map(option => (
-              <option className="c-input__options" value={option.value}>{option.label}</option>
+              <option
+                key={option.value}
+                className="c-input__options"
+                value={option.value}
+              >
+                {option.label}
+              </option>
             ))
           }
         </select>
@@ -46,7 +52,7 @@ export default class Input extends Component {
 
 Input.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
-  icon: PropTypes.object.isRequired,
+  icon: PropTypes.func.isRequired,
   name: PropTypes.string.isRequired,
   // eslint-disable-next-line react/forbid-prop-types
   options: PropTypes.array.isRequired,

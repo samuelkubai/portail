@@ -3,7 +3,7 @@
   "productName": "portail",
   "version": "1.0.0",
   "description": "My Electron application description",
-  "main": "src/index.js",
+  "main": "src/main.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
@@ -50,6 +50,7 @@
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
+    "lodash": "^4.17.11",
     "menubar": "^6.0.5",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",

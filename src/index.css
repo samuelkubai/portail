@@ -3,9 +3,15 @@
     font-family: 'Open Sans', sans-serif;
 }
 
+/* Utility classes */
+.fragment {
+    width: 100%;
+    height: 100%;
+}
+
 .pg-home {
     width: 320px;
-    height: 450px;
+    max-height: 450px;
 
     display: flex;
     flex-direction: column;
@@ -121,7 +127,7 @@
 .c-input-list {
     width: 100%;
 
-    margin-top: 64px;
+    margin-top: 42px;
     margin-bottom: 48px;
 }
 
@@ -206,4 +212,67 @@
     font-weight: bold;
     font-size: 12px;
     line-height: 16px;
+}
+
+/* Navigation component */
+.c-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+
+    margin-top: 32px;
+}
+
+.c-nav__icon {
+    cursor: pointer;
+    margin-right: 94px;
+}
+
+.c-nav__title {
+    color: #153C55;
+    font-weight: bold;
+    font-size: 12px;
+    line-height: 16px;
+    text-align: right;
+}
+
+/* Window list */
+.c-window-list {
+    height: 304px;
+    width: 100%;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    margin-top: 24px;
+    overflow-y: scroll;
+}
+
+.c-window-list__window {
+    width: 128px;
+
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: space-between;
+
+    cursor: pointer;
+    margin-bottom: 24px;
+}
+
+.c-window-list__window img {
+    height: 96px;
+    width: 100%;
+
+    border-radius: 8px;
+}
+
+.c-window-list__name {
+    color: #153C55;
+    font-size: 12px;
+    line-height: 16px;
+    text-align: center;
+    margin-top: 12px;
 }

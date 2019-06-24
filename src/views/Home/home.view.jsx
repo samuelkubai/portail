@@ -1,35 +1,199 @@
 import React, { Component } from 'react';
 
-import Title from '../../components/Title/title.component';
-import SourcesList from '../../components/Source/sources-list.component';
-import InputList from '../../components/Input/input-list.component';
 import Button from '../../components/Button/button.component';
+import InputList from '../../components/Input/input-list.component';
+import Nav from '../../components/Nav/nav.component';
+import Screen from '../../utils/Screen';
+import SourcesList from '../../components/Source/sources-list.component';
+import Title from '../../components/Title/title.component';
+import WindowList from '../../components/WindowsList/window-list.component';
 import VideoPlayer from '../../components/VideoPlayer/video-player.component';
 
 export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      selectingSource: false,
+      currentSource: 'desktop',
+      selectedSource: null,
+      sourceType: 'desktop',
       recording: false,
     };
+    this.onBack.bind(this);
+    this.selectSource.bind(this);
+    this.shouldSelectSource.bind(this);
+    this.renderHome.bind(this);
+    this.renderSelectApp.bind(this);
+    this.renderSelectWindow.bind(this);
     this.toggleRecording.bind(this);
+    this.triggerRecordingSwitch.bind(this);
+  }
+
+  onBack() {
+    const { currentSource } = this.state;
+
+    switch (currentSource) {
+      case 'desktop':
+        this.setState(state => Object.assign(state, { selectingSource: false }));
+        break;
+      case 'windows':
+        this.setState(state => Object.assign(state, { currentSource: 'desktop' }));
+        break;
+      default:
+    }
   }
 
   toggleRecording() {
-    this.setState(state => ({
-      recording: !state.recording,
-    }));
+    const { selectedSource, recording } = this.state;
+
+    if (!recording) {
+      // Starting...
+      // Move the webcam player to the correct screen
+      Screen.createWebcamPlayer(selectedSource);
+      // Start recording
+      this.setState(state => ({
+        recording: true,
+      }));
+    } else {
+      // Stopping...
+      // Close the webcam player
+      this.setState(state => ({
+        recording: false,
+      }), () => {
+        // Stop recording
+        Screen.closeWebcamPlayer();
+        this.setState(state => Object.assign(state, { selectedSource: null }))
+      });
+    }
+  }
+
+  triggerRecordingSwitch() {
+    if (this.shouldSelectSource()) {
+      this.setState(state => Object.assign(state, { selectingSource: true }));
+    } else {
+      this.toggleRecording();
+    }
+  }
+
+  shouldSelectSource() {
+    const { selectedSource, sourceType } = this.state;
+
+    if (selectedSource) {
+      return false;
+    }
+
+    switch (sourceType) {
+      case 'desktop':
+        // TODO: Check if we have more that one source.
+        return true;
+      case 'windows':
+        // TODO: Needs to select available applications.
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  selectSource(source) {
+    const { sourceType, currentSource } = this.state;
+
+    switch (sourceType) {
+      case 'desktop':
+        this.setState(state => (
+          Object.assign(state, {
+            selectedSource: source,
+            selectingSource: false,
+          })
+        ), () => {
+          this.triggerRecordingSwitch();
+          console.log('Toggle recording', { state: this.state });
+        });
+        break;
+      case 'windows':
+        if (currentSource === 'windows') {
+          this.setState(state => (
+            Object.assign(state, {
+              selectedSource: source,
+              selectingSource: false,
+              currentSource: 'desktop',
+            })
+          ), () => {
+            this.triggerRecordingSwitch();
+            console.log('Toggle recording', { state: this.state });
+          });
+          break;
+        }
+        this.setState(state => (
+          Object.assign(state, {
+            currentSource: 'windows',
+          })
+        ));
+        break;
+      default:
+    }
+
+    console.log('Select the source', source);
+  }
+
+  selectSourceType(source) {
+    this.setState(state => Object.assign(state, { sourceType: source }));
+  }
+
+  renderHome({ selectedSource, sourceType, recording }) {
+    return (
+      <div className="fragment">
+        <SourcesList
+          source={sourceType}
+          onSelect={(source) => { this.selectSourceType(source); }}
+        />
+        <InputList />
+        <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
+        <VideoPlayer recording={recording} source={selectedSource} />
+      </div>
+    );
+  }
+
+  renderSelectSource({ currentSource, sourceType }) {
+    return (
+      <div className="fragment">
+        {
+          (sourceType === 'desktop') ?
+            this.renderSelectWindow() :
+            (sourceType === 'windows' && currentSource === 'desktop') ?
+              this.renderSelectWindow() :
+              this.renderSelectApp()
+        }
+      </div>
+    );
+  }
+
+  renderSelectApp() {
+    return (
+      <div className="fragment">
+        <Nav title="Select App" onBack={() => { this.onBack(); }} />
+      </div>
+    );
+  }
+
+  renderSelectWindow() {
+    return (
+      <div className="fragment">
+        <Nav title="Select Window" onBack={() => { this.onBack(); }} />
+        <WindowList onSelect={(source) => { this.selectSource(source); }} />
+      </div>
+    );
   }
 
   render() {
-    const { recording } = this.state;
+    const { currentSource, recording, selectedSource, selectingSource, sourceType } = this.state;
     return (
       <div className="pg-home">
         <Title />
-        <SourcesList />
-        <InputList />
-        <Button onClick={() => this.toggleRecording()} recording={recording} />
-        <VideoPlayer recording={recording} />
+        {
+          !selectingSource ?
+            this.renderHome({ selectedSource, sourceType, recording }) :
+            this.renderSelectSource({ currentSource, sourceType, selectingSource })
+        }
       </div>
     );
   }

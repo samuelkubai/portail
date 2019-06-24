@@ -1,38 +1,23 @@
-import React, { Component } from 'react';
+import React, { Component, PropTypes } from 'react';
 
 export default class SourcesList extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      selectedSource: 'desktop',
-    };
-
-    this.selectSource.bind(this);
-  }
-
-  selectSource(source) {
-    this.setState(() => ({
-      selectedSource: source,
-    }));
-  }
-
   render() {
-    const { selectedSource } = this.state;
+    const { source, onSelect } = this.props;
 
     return (
       <ul className="c-sources-list">
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <li
-          onClick={() => { this.selectSource('desktop'); }}
-          className={`c-source ${selectedSource === 'desktop' ? 'c-source--active' : ''}`}
+          onClick={() => { onSelect('desktop'); }}
+          className={`c-source ${source === 'desktop' ? 'c-source--active' : ''}`}
         >
           <div className="c-source__label">Full screen</div>
           <div className="c-source__action">Select Screen</div>
         </li>
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <li
-          onClick={() => { this.selectSource('windows'); }}
-          className={`c-source ${selectedSource === 'windows' ? 'c-source--active' : ''}`}
+          onClick={() => { onSelect('windows'); }}
+          className={`c-source ${source === 'windows' ? 'c-source--active' : ''}`}
         >
           <div className="c-source__label">Window</div>
           <div className="c-source__action">Select App</div>
@@ -41,3 +26,8 @@ export default class SourcesList extends Component {
     );
   }
 }
+
+SourcesList.propTypes = {
+  onSelect: PropTypes.func.isRequired,
+  source: PropTypes.string.isRequired,
+};
