@@ -3,19 +3,17 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="controls.css">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
 </head>
 <style>
-    .pg-webcam, video {
+    .pg-controls {
         width: 100%;
         height: 100%;
-
-        border-radius: 50%;
     }
 </style>
 <body style="overflow: hidden; background-color: rgba(0,0,0,0); margin: 0" >
-    <div id="web-cam"></div>
+<div id="control-panel"></div>
 </body>
 
 <script type="text/jsx">
@@ -24,8 +22,8 @@
   import {AppContainer} from 'react-hot-loader';
 
   const render = () => {
-    const Webcam = require('./views/Webcam/webcam.view').default;
-    ReactDOM.render(<AppContainer><Webcam /></AppContainer>, document.getElementById('web-cam'));
+    const Controls = require('./views/Controls/controls.view').default;
+    ReactDOM.render(<AppContainer><Controls /></AppContainer>, document.getElementById('control-panel'));
   };
 
   render();

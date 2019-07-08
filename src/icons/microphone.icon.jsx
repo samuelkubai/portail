@@ -23,6 +23,6 @@ MicrophoneIcon.propTypes = {
 };
 
 MicrophoneIcon.defaultProps = {
-  fill: '#153C55',
+  fill: '#1E2834',
   cancelled: false,
 };

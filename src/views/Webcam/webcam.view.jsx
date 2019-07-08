@@ -7,15 +7,9 @@ export default class Webcam extends Component {
     this.setPlayer = (element) => {
       this.player = element;
     };
-
-    console.log(this.player);
   }
 
   componentDidMount() {
-    const electron = require('electron')
-
-    const display = electron.screen.getPrimaryDisplay() // http://electron.atom.io/docs/api/screen
-
     const constraints = {
       video: {
         width: {
@@ -25,7 +19,7 @@ export default class Webcam extends Component {
           ideal: 200
         }
       }
-    }
+    };
 
     window.navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
       this.player.srcObject = stream  // Play stream in <video> element

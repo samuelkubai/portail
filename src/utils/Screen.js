@@ -21,8 +21,26 @@ export default class Screen {
     });
   }
 
-  static getAllApplications(cb) {
-    desktopCapturer.getSources({ types: ['window'] }, (error, sources) => {
+  static async getAllApplications(cb) {
+    desktopCapturer.getSources({ types: ['screen', 'window'] }, (error, sources) => {
+      sources.forEach(async (source) => {
+        const media = await window.navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: source.id,
+              minWidth: 1280,
+              maxWidth: 1280,
+              minHeight: 720,
+              maxHeight: 720,
+            },
+          },
+        });
+
+        console.log(media);
+      });
+
       cb(sources, error);
     });
   }
@@ -32,15 +50,16 @@ export default class Screen {
 
     // Create the browser window.
     webcamPlayer = new remote.BrowserWindow({
-      x: 0,
+      x: display.bounds.x + 16,
       // eslint-disable-next-line no-mixed-operators
-      y: height - 200 + display.bounds.y,
+      y: height - 200 - 58 + display.bounds.y,
       width: 200,
       height: 200,
       alwaysOnTop: true,
       frame: false,
-      focusable: false,
-      movable: false,
+      focusable: true,
+      movable: true,
+      resizable: false,
       transparent: true,
     });
 

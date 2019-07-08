@@ -1,5 +1,7 @@
+import { ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
+import ApplicationList from '../../components/ApplicationList/application-list.component';
 import Button from '../../components/Button/button.component';
 import InputList from '../../components/Input/input-list.component';
 import Nav from '../../components/Nav/nav.component';
@@ -8,6 +10,8 @@ import SourcesList from '../../components/Source/sources-list.component';
 import Title from '../../components/Title/title.component';
 import WindowList from '../../components/WindowsList/window-list.component';
 import VideoPlayer from '../../components/VideoPlayer/video-player.component';
+import Controls from '../../utils/Controls';
+import Recorder from '../../utils/Recorder';
 
 export default class Home extends Component {
   constructor(props) {
@@ -27,6 +31,10 @@ export default class Home extends Component {
     this.renderSelectWindow.bind(this);
     this.toggleRecording.bind(this);
     this.triggerRecordingSwitch.bind(this);
+
+    ipcRenderer.on('stop-recording', () => {
+      this.toggleRecording();
+    })
   }
 
   onBack() {
@@ -48,22 +56,30 @@ export default class Home extends Component {
 
     if (!recording) {
       // Starting...
-      // Move the webcam player to the correct screen
+      // Register event listener
+      Recorder.instance.addEventListener(this.toggleRecording);
+      // Move the web camera to the correct screen
       Screen.createWebcamPlayer(selectedSource);
+      // Setup the controls panel in the correct screen
+      Controls.launchControlsPanel(selectedSource);
       // Start recording
-      this.setState(state => ({
-        recording: true,
-      }));
+      this.setState(state => Object.assign(state, { recording: true, }));
     } else {
       // Stopping...
-      // Close the webcam player
-      this.setState(state => ({
-        recording: false,
-      }), () => {
-        // Stop recording
-        Screen.closeWebcamPlayer();
-        this.setState(state => Object.assign(state, { selectedSource: null }))
-      });
+      // Close the web camera player
+      this.setState(
+        state => Object.assign(state, { recording: false, }),
+        () => {
+          // Stop recording
+          Screen.closeWebcamPlayer();
+          // Close the controls panel
+          Controls.closeControlsPanel();
+          // Remove event listener
+          Recorder.instance.removeListener(this.toggleRecording);
+          // Update the state.
+          this.setState(state => Object.assign(state, { selectedSource: null }));
+        }
+      );
     }
   }
 
@@ -88,7 +104,7 @@ export default class Home extends Component {
         return true;
       case 'windows':
         // TODO: Needs to select available applications.
-        return false;
+        return true;
       default:
         return false;
     }
@@ -171,6 +187,7 @@ export default class Home extends Component {
     return (
       <div className="fragment">
         <Nav title="Select App" onBack={() => { this.onBack(); }} />
+        <ApplicationList onSelect={(source) => {this.selectSource(source)}} />
       </div>
     );
   }
