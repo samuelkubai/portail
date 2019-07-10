@@ -1,62 +1,15 @@
-import { desktopCapturer } from 'electron';
-import RecordRTC from 'recordrtc';
+import { concat } from 'video-stitch';
+import aperture from 'aperture';
+import fs from 'fs';
 
 class Recorder {
-  static getUserMedia(source) {
-    let media = null;
+  static deleteClip(clipPath) {
     try {
-      media = window.navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          mandatory: {
-            chromeMediaSource: 'desktop',
-            chromeMediaSourceId: source.id,
-            minWidth: 1280,
-            maxWidth: 1280,
-            minHeight: 720,
-            maxHeight: 720,
-          },
-        },
-      });
+      fs.unlinkSync(clipPath);
     } catch (e) {
-      console.log(e);
+      console.error(`Error deleting the clip: ${clipPath}`);
+      console.error(e);
     }
-
-    return media;
-  }
-
-  static layerAudio(stream, cb) {
-    navigator.mediaDevices
-      .getUserMedia({ audio: true, video: false })
-      .then(function(mediaStream) {
-        const audioTracks = mediaStream.getAudioTracks();
-
-        // mix audio tracks
-        if (audioTracks.length > 0) {
-          const mixAudioTrack = Recorder.mixTracks(audioTracks);
-          stream.addTrack(mixAudioTrack);
-        }
-
-        cb(stream);
-      })
-      .catch(function(err) {
-        console.log('Layering audio error');
-        console.log(err);
-      });
-
-    return stream;
-  }
-
-  static mixTracks(tracks) {
-    const ac = new AudioContext();
-    const dest = ac.createMediaStreamDestination();
-
-    tracks.forEach((track) => {
-      const source = ac.createMediaStreamSource(new MediaStream([track]));
-      source.connect(dest);
-    });
-
-    return dest.stream.getTracks()[0];
   }
 
   static initializeFirebase() {
@@ -89,7 +42,7 @@ class Recorder {
     // eslint-disable-next-line no-undef
     const storageRef = firebase.storage().ref();
     const fileRef = storageRef.child(
-      `images/${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.webm`,
+      `videos/${date.getHours()}-${date.getMinutes()}-${date.getSeconds()}.mp4`,
     );
     const storageResponse = await fileRef.put(blob);
     console.log('Successfully uploaded file');
@@ -106,71 +59,120 @@ class Recorder {
     console.log('Create new recorder instance...');
 
     Recorder.instance = this;
-    this.recorderObject = null;
-    this.onCloseListeners = [];
     Recorder.firebaseInitialized = false;
+    this.recording = { source: null, clips: [] };
 
     return this;
   }
 
-  addEventListener(listener) {
-    this.onCloseListeners.push(listener);
+  cancelRecording(cb) {
+    if (!this.recorder) {
+      this.clearRecording(cb);
+      return;
+    }
+
+    this.recorder.stopRecording().then(async (video) => {
+      try {
+        this.recording.clips.push(video);
+        this.clearRecording(cb);
+      } catch (e) {
+        console.error(e);
+      }
+    });
   }
 
-  getEventListeners() {
-    return this.onCloseListeners;
+  clearRecording(cb) {
+    try {
+      // Delete all the clips
+      this.recording.clips.forEach((clip) => {
+        Recorder.deleteClip(clip);
+      });
+      // Execute the callback passed
+      cb && cb();
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  removeListener(listener) {
-    this.onCloseListeners = this.onCloseListeners.filter((l) => l !== listener);
+  async compileRecording() {
+    // Combine the videos if more than one clip
+    if (this.recording.clips.length > 1) {
+      const clips = this.recording.clips.map((clip) => ({ fileName: clip }));
+      console.log(clips);
+      const finalFile = await concat({ overwrite: false })
+        .clips(clips)
+        .output(`output-${new Date().getTime()}.mp4`)
+        .concat();
+
+      console.log(`Final file: ${finalFile}`);
+
+      this.recording.clips = [finalFile];
+    }
+
+    fs.readFile(this.recording.clips[0], async (err, data) => {
+      try {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        const file = new Blob([data], { type: 'video/mp4' });
+        console.log(`Created a blob: ${file}`);
+        await Recorder.saveToFirebase(data);
+        this.recording.clips = [];
+      } catch (e) {
+        console.error(e);
+      }
+    });
   }
 
   isRecording() {
-    console.log(this.recorderObject);
-    return this.recorderObject !== null;
+    return this.recorder !== null;
   }
 
-  startRecording(stream, listener) {
-    this.recorderObject = RecordRTC(stream, { type: 'video' });
-    this.recorderObject.startRecording();
-
-    // Register the onClose listeners
-    if (listener) {
-      this.addEventListener(listener);
-    }
-
-    return this.recorderObject;
-  }
-
-  stopRecording() {
-    this.recorderObject.stopRecording(async () => {
-      const blob = this.recorderObject.getBlob();
-      const storageResponse = await Recorder.saveToFirebase(blob);
-
-      // Call the on close listeners
-      this.getEventListeners().forEach((listener) => {
-        if (listener) {
-          listener(storageResponse);
-        }
-      });
+  pauseRecording() {
+    this.recorder.stopRecording().then(async (video) => {
+      console.log(`Successfully paused the recording, saved the clip here: ${video}`);
+      this.recording.clips.push(video);
+      this.recorder = null;
     });
   }
 
   record(source) {
-    desktopCapturer.getSources({ types: ['window', 'screen'] }, (error, sources) => {
-      sources.forEach((s) => {
-        if (s.name === source.name) {
-          try {
-            Recorder.getUserMedia(s).then((stream) => {
-              Recorder.layerAudio(stream, (streamWithAudio) => {
-                this.startRecording(streamWithAudio);
-              });
-            });
-          } catch (e) {
-            console.log(e);
-          }
-        }
-      });
+    this.recorder = aperture();
+
+    aperture.audioDevices().then(async (devices) => {
+      try {
+        console.log('Found audio devices');
+        console.log(devices);
+        const audioDevice = devices.filter((d) => d.name === 'Built-in Microphone')[0];
+        await this.recorder.startRecording({
+          audioDeviceId: audioDevice.id,
+          cropArea: source.bounds,
+          highlightClicks: true,
+          screenId: source.id,
+        });
+      } catch (e) {
+        console.log(e);
+      }
+    });
+  }
+
+  stopRecording() {
+    if (!this.recorder) {
+      return this.compileRecording();
+    }
+
+    this.recorder.stopRecording().then(async (video) => {
+      try {
+        console.log(`Successfully stopped the recording, saved it here: ${video}`);
+        this.recording.clips.push(video);
+        this.recorder = null;
+
+        return this.compileRecording();
+      } catch (e) {
+        console.error(e);
+      }
     });
   }
 }

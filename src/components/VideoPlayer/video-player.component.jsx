@@ -8,12 +8,40 @@ export default class VideoPlayer extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.recording !== prevProps.recording) {
-      // eslint-disable-next-line react/prop-types
-      this.props.recording ?
+    if (
+      (this.props.recording !== prevProps.recording) ||
+      (this.props.paused !== prevProps.paused) ||
+      (this.props.cancel !== prevProps.cancel)
+    ) {
+      const { cancel, paused, recording } = this.props;
+
+      if (cancel && !recording) { return; }
+
+      // Check if to pause the recording
+      if (paused && recording && !cancel) {
+          VideoPlayer.pauseRecording();
+          return;
+      }
+
+      // Check if to cancel the recording
+      if (cancel && (recording || paused)) {
+        this.cancelRecording();
+        return;
+      }
+
+      recording ?
         this.record() :
         VideoPlayer.stopRecording();
     }
+  }
+
+  cancelRecording() {
+    const { onReset } = this.props;
+    Recorder.instance.cancelRecording(onReset);
+  }
+
+  static pauseRecording() {
+    Recorder.instance.pauseRecording();
   }
 
   static stopRecording() {

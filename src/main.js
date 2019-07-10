@@ -28,28 +28,28 @@ const isDevMode = process.execPath.match(/[\\/]electron/);
 if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
 
 const createWindow = async () => {
-  // // Create the browser window.
-  // mainWindow = new BrowserWindow({
-  //   width: 800,
-  //   height: 600,
-  // });
-  //
-  // // and load the index.html of the app.
-  // mainWindow.loadURL(`file://${__dirname}/index.html`);
-  //
-  // // Open the DevTools.
-  // if (isDevMode) {
-  //   await installExtension(REACT_DEVELOPER_TOOLS);
-  //   mainWindow.webContents.openDevTools();
-  // }
-  //
-  // // Emitted when the window is closed.
-  // mainWindow.on('closed', () => {
-  //   // Dereference the window object, usually you would store windows
-  //   // in an array if your app supports multi windows, this is the time
-  //   // when you should delete the corresponding element.
-  //   mainWindow = null;
-  // });
+  // Create the browser window.
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+  });
+
+  // and load the index.html of the app.
+  mainWindow.loadURL(`file://${__dirname}/index.html`);
+
+  // Open the DevTools.
+  if (isDevMode) {
+    await installExtension(REACT_DEVELOPER_TOOLS);
+    mainWindow.webContents.openDevTools();
+  }
+
+  // Emitted when the window is closed.
+  mainWindow.on('closed', () => {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    mainWindow = null;
+  });
 };
 
 // This method will be called when Electron has finished
@@ -77,7 +77,22 @@ app.on('activate', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+ipcMain.on('cancel-recording', () => {
+  mainWindow.webContents.send('cancel-recording');
+  mainMenu.window.webContents.send('cancel-recording');
+});
+
 ipcMain.on('stop-recording', () => {
-  // mainWindow.webContents.send('stop-recording');
+  mainWindow.webContents.send('stop-recording');
   mainMenu.window.webContents.send('stop-recording');
+});
+
+ipcMain.on('pause-recording', () => {
+  mainWindow.webContents.send('pause-recording');
+  mainMenu.window.webContents.send('pause-recording');
+});
+
+ipcMain.on('toggle-webcam', () => {
+  mainWindow.webContents.send('toggle-webcam');
+  mainMenu.window.webContents.send('toggle-webcam');
 });

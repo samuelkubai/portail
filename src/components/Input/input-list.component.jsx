@@ -5,10 +5,23 @@ import MicrophoneIcon from '../../icons/microphone.icon';
 import VideoIcon from '../../icons/video.icon';
 
 export default class InputList extends Component {
+  constructor(props) {
+    super(props);
+
+    this.isInputActive.bind(this);
+  }
+
+  isInputActive(type) {
+    const state = this.props.inputState.filter(i => i.type === type)[0];
+    return state && state.active;
+  }
+
   render() {
+    const { onUpdate } = this.props;
     const inputs = [
       {
         name: 'Microphone',
+        type: 'microphone',
         icon: MicrophoneIcon,
         options: [
           {
@@ -23,6 +36,7 @@ export default class InputList extends Component {
       },
       {
         name: 'Camera',
+        type: 'camera',
         icon: VideoIcon,
         options: [
           {
@@ -40,7 +54,7 @@ export default class InputList extends Component {
         </div>
         {
           // eslint-disable-next-line react/no-array-index-key
-          inputs.map((input, index) => <Input key={index} {...input} />)
+          inputs.map((input, index) => <Input active={this.isInputActive(input.type)} key={index} {...input} onChange={onUpdate} />)
         }
       </div>
     );

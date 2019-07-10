@@ -12,12 +12,11 @@ export default class Controls extends Component {
     super(props);
     this.cancel.bind(this);
     this.record.bind(this);
-    Controls.stop.bind(this);
-    this.pause.bind(this);
   }
 
-  pause() {
+  static pause() {
     console.log('ACTION: Pause the screen capture');
+    ipcRenderer.send('pause-recording', { date: new Date() });
   }
 
   static stop() {
@@ -30,7 +29,8 @@ export default class Controls extends Component {
   }
 
   cancel() {
-    console.log('ACTION: Cancel the recording and reset')
+    console.log('ACTION: Cancel the recording and reset');
+    ipcRenderer.send('cancel-recording', { date: new Date() });
   }
 
   static recordOrStop() {
@@ -39,6 +39,11 @@ export default class Controls extends Component {
     if (Recorder.instance.isRecording()) {
       Controls.stop();
     }
+  }
+
+  static toggleWebcam() {
+    console.log('ACTION: Toggle the webcam');
+    ipcRenderer.send('toggle-webcam', { date: new Date() });
   }
 
   render() {
@@ -51,16 +56,16 @@ export default class Controls extends Component {
                 <div className="i-recorder__center"></div>
               </div>
             </li>
-            <li className="c-control-item">
+            <li className="c-control-item" onClick={Controls.toggleWebcam}>
               <VideoIcon/>
             </li>
             <li className="c-control-item">
               <MicrophoneIcon />
             </li>
-            <li className="c-control-item">
+            <li className="c-control-item" onClick={Controls.pause}>
               <PauseIcon />
             </li>
-            <li className="c-control-item">
+            <li className="c-control-item" onClick={this.cancel}>
               <DeleteIcon />
             </li>
           </ul>

@@ -3,22 +3,18 @@ import React, { Component, PropTypes } from 'react';
 export default class Input extends Component {
   constructor(props) {
     super(props);
-    this.state = {
-      active: true,
-    };
 
     this.toggleActive.bind(this);
   }
 
   toggleActive() {
-    this.setState(state => ({
-      active: !state.active,
-    }));
+    const { active, onChange, type } = this.props;
+    console.log(`toggleActive(): type: ${type} active: ${active}`);
+    onChange({ active: !active, type });
   }
 
   render() {
-    const { active } = this.state;
-    const { icon, name, options } = this.props;
+    const { active, icon, name, options } = this.props;
 
     return (
       <div className="c-input">
@@ -29,7 +25,6 @@ export default class Input extends Component {
           className={`c-input__button ${active ? 'c-input__button--active' : ''}`}
         >
           { React.createElement(icon, { cancelled: !active, fill: active ? '#153C55' : '#8595A9' }) }
-          {/* <img src={icon} alt={name} /> */}
         </button>
 
         <select className="c-input__options" name={name} id={`id-${name}`}>

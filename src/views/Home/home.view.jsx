@@ -1,6 +1,8 @@
+import _ from 'lodash';
 import { ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
+import * as Constants from '../../utils/Constants';
 import ApplicationList from '../../components/ApplicationList/application-list.component';
 import Button from '../../components/Button/button.component';
 import InputList from '../../components/Input/input-list.component';
@@ -11,17 +13,29 @@ import Title from '../../components/Title/title.component';
 import WindowList from '../../components/WindowsList/window-list.component';
 import VideoPlayer from '../../components/VideoPlayer/video-player.component';
 import Controls from '../../utils/Controls';
-import Recorder from '../../utils/Recorder';
+import Director from '../../utils/Director';
 
 export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      cancelRecording: false,
       selectingSource: false,
       currentSource: 'desktop',
       selectedSource: null,
       sourceType: 'desktop',
       recording: false,
+      recordingPaused: false,
+      inputState: [
+        {
+          type: 'microphone',
+          active: true
+        },
+        {
+          type: 'camera',
+          active: true
+        }
+      ]
     };
     this.onBack.bind(this);
     this.selectSource.bind(this);
@@ -31,10 +45,37 @@ export default class Home extends Component {
     this.renderSelectWindow.bind(this);
     this.toggleRecording.bind(this);
     this.triggerRecordingSwitch.bind(this);
+    this.updateInputState.bind(this);
+    this.retrieveInputFromState.bind(this);
+
+    ipcRenderer.on('cancel-recording', () => {
+      Director
+        .instance
+        .cancelRecording()
+        .stopCamera()
+        .stopControlPanel()
+        .resetAndCleanup();
+    });
 
     ipcRenderer.on('stop-recording', () => {
       this.toggleRecording();
-    })
+    });
+
+    ipcRenderer.on('pause-recording', () => {
+      Director
+        .instance
+        .pauseRecording();
+    });
+
+    ipcRenderer.on('toggle-webcam', () => {
+      Director.instance.toggleCamera();
+    });
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (!_.isEqual(prevState, this.state)) {
+
+    }
   }
 
   onBack() {
@@ -51,35 +92,35 @@ export default class Home extends Component {
     }
   }
 
+  retrieveInputFromState(type) {
+    const { inputState } = this.state;
+
+    return inputState.filter(i => i.type === type)[0];
+  }
+
   toggleRecording() {
     const { selectedSource, recording } = this.state;
 
     if (!recording) {
-      // Starting...
-      // Register event listener
-      Recorder.instance.addEventListener(this.toggleRecording);
-      // Move the web camera to the correct screen
-      Screen.createWebcamPlayer(selectedSource);
-      // Setup the controls panel in the correct screen
-      Controls.launchControlsPanel(selectedSource);
-      // Start recording
-      this.setState(state => Object.assign(state, { recording: true, }));
+      Director
+        .instance
+        .defineArea(selectedSource)
+        .registerOnCleanup(() => {
+          this.setState(state => Object.assign(state, { recording: false, selectedSource: null }));
+        })
+        .setupCamera(this.retrieveInputFromState(Constants.CAMERA_TYPE))
+        .setupAudio(this.retrieveInputFromState(Constants.MICROPHONE_TYPE))
+        .setupControlPanel()
+        .setup(() => {
+          this.setState(state => Object.assign(state, { recording: true }));
+        });
     } else {
-      // Stopping...
-      // Close the web camera player
-      this.setState(
-        state => Object.assign(state, { recording: false, }),
-        () => {
-          // Stop recording
-          Screen.closeWebcamPlayer();
-          // Close the controls panel
-          Controls.closeControlsPanel();
-          // Remove event listener
-          Recorder.instance.removeListener(this.toggleRecording);
-          // Update the state.
-          this.setState(state => Object.assign(state, { selectedSource: null }));
-        }
-      );
+      Director
+        .instance
+        .stopRecording()
+        .stopCamera()
+        .stopControlPanel()
+        .resetAndCleanup();
     }
   }
 
@@ -155,16 +196,15 @@ export default class Home extends Component {
     this.setState(state => Object.assign(state, { sourceType: source }));
   }
 
-  renderHome({ selectedSource, sourceType, recording }) {
+  renderHome({ inputState, sourceType, recording}) {
     return (
       <div className="fragment">
         <SourcesList
           source={sourceType}
           onSelect={(source) => { this.selectSourceType(source); }}
         />
-        <InputList />
+        <InputList inputState={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
         <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
-        <VideoPlayer recording={recording} source={selectedSource} />
       </div>
     );
   }
@@ -201,14 +241,38 @@ export default class Home extends Component {
     );
   }
 
+  onReset() {
+    console.log('ACTION: Reset the application');
+    this.toggleRecording();
+  }
+
+  updateInputState({ type, active }) {
+    console.log(`updateInputState(): type: ${type} active: ${active}`);
+
+    const { inputState } = this.state;
+
+    const updatedInputState = inputState.map(s => {
+      if (s.type === type) {
+        return Object.assign(s, { active });
+      }
+
+      return s;
+    });
+
+    this.setState(state => {
+      return Object.assign(state, { inputState: updatedInputState });
+    })
+  }
+
   render() {
-    const { currentSource, recording, selectedSource, selectingSource, sourceType } = this.state;
+    const { currentSource, inputState, recording, selectingSource, sourceType } = this.state;
+
     return (
       <div className="pg-home">
         <Title />
         {
           !selectingSource ?
-            this.renderHome({ selectedSource, sourceType, recording }) :
+            this.renderHome({ inputState, sourceType, recording }) :
             this.renderSelectSource({ currentSource, sourceType, selectingSource })
         }
       </div>

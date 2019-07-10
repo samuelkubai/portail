@@ -4,9 +4,6 @@ let controlsPanel = null;
 
 export default class Controls {
   static launchControlsPanel(display) {
-    const height = display.bounds.height;
-    const width = display.bounds.width;
-
     // Create the browser window.
     controlsPanel = new remote.BrowserWindow({
       x: display.bounds.x + 16,

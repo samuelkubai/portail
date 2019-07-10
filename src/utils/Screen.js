@@ -45,14 +45,14 @@ export default class Screen {
     });
   }
 
-  static createWebcamPlayer(display) {
-    const height = display.bounds.height;
+  static createWebcamPlayer(area) {
+    const height = area.bounds.height;
 
     // Create the browser window.
     webcamPlayer = new remote.BrowserWindow({
-      x: display.bounds.x + 16,
+      x: area.bounds.x + 16,
       // eslint-disable-next-line no-mixed-operators
-      y: height - 200 - 58 + display.bounds.y,
+      y: height - 200 - 58 + area.bounds.y,
       width: 200,
       height: 200,
       alwaysOnTop: true,
@@ -79,5 +79,22 @@ export default class Screen {
 
   static closeWebcamPlayer() {
     webcamPlayer.close();
+  }
+
+  static hideWebcamPlayer() {
+    webcamPlayer.hide();
+  }
+
+  static isWebcamVisible() {
+    return webcamPlayer && webcamPlayer.isVisible();
+  }
+
+  static showWebcamPlayer(area) {
+    if (!webcamPlayer) {
+      this.createWebcamPlayer(area);
+      return;
+    }
+
+    webcamPlayer.show();
   }
 }

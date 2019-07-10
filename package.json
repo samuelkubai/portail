@@ -47,17 +47,21 @@
     }
   },
   "dependencies": {
+    "aperture": "^5.2.0",
+    "delay": "^4.3.0",
     "electron": "^5.0.6",
     "electron-compile": "^6.4.4",
     "electron-devtools-installer": "^2.1.0",
     "electron-squirrel-startup": "^1.0.0",
+    "fs": "^0.0.1-security",
     "ipc": "^0.0.1",
     "lodash": "^4.17.11",
     "menubar": "^6.0.5",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",
     "react-hot-loader": "^3.0.0-beta.6",
-    "recordrtc": "^5.5.7"
+    "recordrtc": "^5.5.7",
+    "video-stitch": "^1.6.0"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
