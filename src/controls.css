@@ -38,12 +38,29 @@
 }
 
 .c-control-item {
+    height: 32px;
+    width: 32px;
+
     display: flex;
     align-items: center;
     justify-content: center;
 
+    border-radius: 50%;
     cursor: pointer;
-    margin-right: 32px;
+    margin-right: 20px;
+}
+
+.c-control-item:hover {
+    background: #CDD6DF;
+}
+
+.c-control-item--active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #CDD6DF;
+    border: 1px solid #5C6B7B;
 }
 
 .c-control-list:hover {

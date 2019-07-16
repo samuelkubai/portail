@@ -19,8 +19,8 @@ export default class SourcesList extends Component {
           onClick={() => { onSelect('windows'); }}
           className={`c-source ${source === 'windows' ? 'c-source--active' : ''}`}
         >
-          <div className="c-source__label">Window</div>
-          <div className="c-source__action">Select App</div>
+          <div className="c-source__label">Custom</div>
+          <div className="c-source__action">Select Area</div>
         </li>
       </ul>
     );

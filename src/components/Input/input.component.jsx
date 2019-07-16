@@ -4,38 +4,50 @@ export default class Input extends Component {
   constructor(props) {
     super(props);
 
-    this.toggleActive.bind(this);
+    this.onChange.bind(this);
   }
 
-  toggleActive() {
-    const { active, onChange, type } = this.props;
-    console.log(`toggleActive(): type: ${type} active: ${active}`);
-    onChange({ active: !active, type });
+  onChange({ a, c }) {
+    const { active, choice, onChange, type } = this.props;
+
+    onChange({
+      active: a !== undefined ? a : active,
+      choice: c ? c : choice,
+      type
+    })
   }
 
   render() {
-    const { active, icon, name, options } = this.props;
+    const { active, choice, icon, name, options } = this.props;
 
     return (
       <div className="c-input">
         <button
           onClick={() => {
-            this.toggleActive();
+            this.onChange({ a: !active });
           }}
           className={`c-input__button ${active ? 'c-input__button--active' : ''}`}
         >
           { React.createElement(icon, { cancelled: !active, fill: active ? '#153C55' : '#8595A9' }) }
         </button>
 
-        <select className="c-input__options" name={name} id={`id-${name}`}>
+        <select
+          className="c-input__options"
+          name={name}
+          id={`id-${name}`}
+          value={choice}
+          onChange={evt => {
+            this.onChange({ c: evt.target.value })
+          }}
+        >
           {
             options.map(option => (
               <option
-                key={option.value}
+                key={option.id}
                 className="c-input__options"
-                value={option.value}
+                value={option.id}
               >
-                {option.label}
+                {option.name}
               </option>
             ))
           }

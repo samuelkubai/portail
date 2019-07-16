@@ -1,51 +1,41 @@
+import aperture from 'aperture';
 import React, { Component } from 'react';
 
+import * as Constants from '../../utils/Constants';
 import Input from './input.component';
-import MicrophoneIcon from '../../icons/microphone.icon';
-import VideoIcon from '../../icons/video.icon';
 
 export default class InputList extends Component {
   constructor(props) {
     super(props);
 
     this.isInputActive.bind(this);
+    this.updateAudioOptions.bind(this);
   }
 
   isInputActive(type) {
-    const state = this.props.inputState.filter(i => i.type === type)[0];
+    const state = this.props.inputs.filter(i => i.type === type)[0];
     return state && state.active;
   }
 
+  async componentDidMount() {
+    this.updateAudioOptions();
+  }
+
+  async updateAudioOptions () {
+    const { inputs, onUpdate } = this.props;
+    const audioDevices = await aperture.audioDevices();
+    const input = inputs.filter(i => i.type === Constants.MICROPHONE_TYPE)[0];
+
+    const audioOptions = { type: Constants.MICROPHONE_TYPE, options: audioDevices };
+    if (input && !input.choice) {
+      audioOptions.choice = audioDevices[0].id;
+    }
+
+    onUpdate(audioOptions);
+  }
+
   render() {
-    const { onUpdate } = this.props;
-    const inputs = [
-      {
-        name: 'Microphone',
-        type: 'microphone',
-        icon: MicrophoneIcon,
-        options: [
-          {
-            label: 'Built-in microphone',
-            value: 'built-in-microphone',
-          },
-          {
-            label: 'Headset',
-            value: 'headset',
-          },
-        ],
-      },
-      {
-        name: 'Camera',
-        type: 'camera',
-        icon: VideoIcon,
-        options: [
-          {
-            label: 'Built-in web camera',
-            value: 'built-in-web-camera',
-          },
-        ],
-      },
-    ];
+    const { inputs, onUpdate } = this.props;
 
     return (
       <div className="c-input-list">

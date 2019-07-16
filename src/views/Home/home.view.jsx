@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
@@ -7,13 +6,12 @@ import ApplicationList from '../../components/ApplicationList/application-list.c
 import Button from '../../components/Button/button.component';
 import InputList from '../../components/Input/input-list.component';
 import Nav from '../../components/Nav/nav.component';
-import Screen from '../../utils/Screen';
 import SourcesList from '../../components/Source/sources-list.component';
 import Title from '../../components/Title/title.component';
 import WindowList from '../../components/WindowsList/window-list.component';
-import VideoPlayer from '../../components/VideoPlayer/video-player.component';
-import Controls from '../../utils/Controls';
 import Director from '../../utils/Director';
+import MicrophoneIcon from '../../icons/microphone.icon';
+import VideoIcon from '../../icons/video.icon';
 
 export default class Home extends Component {
   constructor(props) {
@@ -28,12 +26,23 @@ export default class Home extends Component {
       recordingPaused: false,
       inputState: [
         {
-          type: 'microphone',
-          active: true
+          active: true,
+          name: 'Microphone',
+          icon: MicrophoneIcon,
+          type: Constants.MICROPHONE_TYPE,
+          options: [],
         },
         {
-          type: 'camera',
-          active: true
+          active: true,
+          name: 'Camera',
+          icon: VideoIcon,
+          type: Constants.CAMERA_TYPE,
+          options: [
+            {
+              id: 'default',
+              name: 'Default',
+            },
+          ]
         }
       ]
     };
@@ -57,25 +66,44 @@ export default class Home extends Component {
         .resetAndCleanup();
     });
 
-    ipcRenderer.on('stop-recording', () => {
-      this.toggleRecording();
+    ipcRenderer.on('init-control-panel', () => {
+      console.log('[Home Component Process] In the "init-control-panel" event:');
+      console.log('State: ', { state: this.state });
+      ipcRenderer.send('update-control-panel', { state: this.state });
     });
 
     ipcRenderer.on('pause-recording', () => {
       Director
         .instance
-        .pauseRecording();
+        .pauseRecording(() => {
+          this.setState(state => {
+            return Object.assign(state, { recordingPaused: !state.recordingPaused })
+          }, () => {
+            ipcRenderer.send('update-control-panel', { state: this.state });
+          })
+        });
+    });
+
+    ipcRenderer.on('stop-recording', () => {
+      this.toggleRecording(() => {
+        ipcRenderer.send('update-control-panel', { state: this.state });
+      });
     });
 
     ipcRenderer.on('toggle-webcam', () => {
-      Director.instance.toggleCamera();
+      Director
+        .instance
+        .toggleCamera(
+          () => {
+            this.updateInputState({
+              type: Constants.CAMERA_TYPE,
+              active: !this.retrieveInputFromState(Constants.CAMERA_TYPE).active
+            }, () => {
+              ipcRenderer.send('update-control-panel', { state: this.state });
+            });
+          }
+        );
     });
-  }
-
-  componentDidUpdate(prevProps, prevState) {
-    if (!_.isEqual(prevState, this.state)) {
-
-    }
   }
 
   onBack() {
@@ -98,7 +126,7 @@ export default class Home extends Component {
     return inputState.filter(i => i.type === type)[0];
   }
 
-  toggleRecording() {
+  toggleRecording(cb) {
     const { selectedSource, recording } = this.state;
 
     if (!recording) {
@@ -106,13 +134,13 @@ export default class Home extends Component {
         .instance
         .defineArea(selectedSource)
         .registerOnCleanup(() => {
-          this.setState(state => Object.assign(state, { recording: false, selectedSource: null }));
+          this.setState(state => Object.assign(state, { recording: false, selectedSource: null }), () => { cb && cb(); });
         })
         .setupCamera(this.retrieveInputFromState(Constants.CAMERA_TYPE))
         .setupAudio(this.retrieveInputFromState(Constants.MICROPHONE_TYPE))
         .setupControlPanel()
         .setup(() => {
-          this.setState(state => Object.assign(state, { recording: true }));
+          this.setState(state => Object.assign(state, { recording: true }), () => { cb && cb(); });
         });
     } else {
       Director
@@ -203,7 +231,7 @@ export default class Home extends Component {
           source={sourceType}
           onSelect={(source) => { this.selectSourceType(source); }}
         />
-        <InputList inputState={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
+        <InputList inputs={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
         <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
       </div>
     );
@@ -246,14 +274,19 @@ export default class Home extends Component {
     this.toggleRecording();
   }
 
-  updateInputState({ type, active }) {
-    console.log(`updateInputState(): type: ${type} active: ${active}`);
+  updateInputState({ type, active, choice, options }, cb) {
+    console.log(`updateInputState(): type: ${type} active: ${active} choice ${choice}`);
 
     const { inputState } = this.state;
 
     const updatedInputState = inputState.map(s => {
       if (s.type === type) {
-        return Object.assign(s, { active });
+        const input = {};
+        if (active !== undefined) input.active = active;
+        if (choice !== undefined) input.choice = choice;
+        if (options !== undefined) input.options = options;
+
+        return Object.assign(s, input);
       }
 
       return s;
@@ -261,6 +294,8 @@ export default class Home extends Component {
 
     this.setState(state => {
       return Object.assign(state, { inputState: updatedInputState });
+    }, () => {
+      cb && cb();
     })
   }
 

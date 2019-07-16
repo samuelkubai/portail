@@ -28,9 +28,12 @@ class Director {
     return this;
   }
 
-  pauseRecording() {
+  pauseRecording(cb) {
     if (Recorder.instance.isRecording()) Recorder.instance.pauseRecording();
     else this.setup();
+
+    cb && cb();
+
     return this;
   }
 
@@ -46,8 +49,11 @@ class Director {
   }
 
   setup(cb) {
-    Recorder.instance.record(this.area, this.recordingOptions);
-    cb && cb();
+    Recorder.instance.record(this.area, this.recordingOptions).then((recording) => {
+      console.log(`Director.instance.setup(): Successfully started recording`);
+      console.log(recording);
+      cb && cb();
+    });
   }
 
   setupCamera({ active }) {
@@ -56,8 +62,8 @@ class Director {
     return this;
   }
 
-  setupAudio({ active }) {
-    this.recordingOptions[Constants.MICROPHONE_TYPE].active = active;
+  setupAudio({ active, choice }) {
+    this.recordingOptions[Constants.MICROPHONE_TYPE] = { active, choice };
     return this;
   }
 
@@ -81,12 +87,15 @@ class Director {
     return this;
   }
 
-  toggleCamera() {
+  toggleCamera(cb) {
     if (Screen.isWebcamVisible()) {
       Screen.hideWebcamPlayer();
     } else {
       Screen.showWebcamPlayer(this.area);
     }
+
+    cb && cb();
+
     return this;
   }
 

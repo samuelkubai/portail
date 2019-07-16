@@ -1,4 +1,5 @@
 import { concat } from 'video-stitch';
+import * as Constants from '../utils/Constants';
 import aperture from 'aperture';
 import fs from 'fs';
 
@@ -60,7 +61,7 @@ class Recorder {
 
     Recorder.instance = this;
     Recorder.firebaseInitialized = false;
-    this.recording = { source: null, clips: [] };
+    this.recording = { options: {}, instance: null, source: null, clips: [] };
 
     return this;
   }
@@ -138,24 +139,27 @@ class Recorder {
     });
   }
 
-  record(source) {
+  async record(source, options) {
     this.recorder = aperture();
+    try {
+      // Initialize recording options
+      this.recording.options = {
+        cropArea: source.bounds,
+        highlightClicks: true,
+        screenId: source.id,
+      };
 
-    aperture.audioDevices().then(async (devices) => {
-      try {
-        console.log('Found audio devices');
-        console.log(devices);
-        const audioDevice = devices.filter((d) => d.name === 'Built-in Microphone')[0];
-        await this.recorder.startRecording({
-          audioDeviceId: audioDevice.id,
-          cropArea: source.bounds,
-          highlightClicks: true,
-          screenId: source.id,
-        });
-      } catch (e) {
-        console.log(e);
+      // Check whether we need audio
+      if (options[Constants.MICROPHONE_TYPE].active) {
+        this.recording.options.audioDeviceId = options[Constants.MICROPHONE_TYPE].choice;
       }
-    });
+
+      this.recording.instance = await this.recorder.startRecording(this.recording.options);
+
+      return this.recording;
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   stopRecording() {

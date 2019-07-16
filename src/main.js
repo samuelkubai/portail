@@ -1,8 +1,36 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { enableLiveReload } from 'electron-compile';
 import { menubar } from 'menubar';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
-import { enableLiveReload } from 'electron-compile';
 import path from 'path';
+import WindowManager from './utils/WindowManager';
+
+let controlPanel;
+
+// Initialize the window manager
+const windowManager = new WindowManager([
+  {
+    name: 'controlPanel',
+    file: `file://${__dirname}/controls.html`,
+    options: ({ area }) => {
+      console.log('[WindowManager]: Init => ', { area });
+      return {
+        x: area.bounds.x + 16,
+        // eslint-disable-next-line no-mixed-operators
+        y: 48 + area.bounds.y,
+        width: 269,
+        height: 42,
+        alwaysOnTop: true,
+        frame: false,
+        focusable: true,
+        hasShadow: false,
+        acceptFirstMouse: true,
+        movable: false,
+        transparent: true,
+      };
+    },
+  },
+]);
 
 // TODO: Activate the menubar here.
 let mainMenu;
@@ -18,8 +46,6 @@ const createMenuBar = () => {
     index: `file://${__dirname}/index.html`,
   });
 };
-
-createMenuBar();
 
 let mainWindow;
 
@@ -55,7 +81,10 @@ const createWindow = async () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  // createWindow();
+  createMenuBar();
+});
 
 // Quit when all windows are closed.
 app.on('window-all-closed', () => {
@@ -78,21 +107,48 @@ app.on('activate', () => {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
 ipcMain.on('cancel-recording', () => {
-  mainWindow.webContents.send('cancel-recording');
+  mainWindow && mainWindow.webContents.send('cancel-recording');
   mainMenu.window.webContents.send('cancel-recording');
 });
 
+ipcMain.on('show-control-panel', (evt, arg) => {
+  controlPanel = windowManager.createOrShowWindow(
+    'controlPanel',
+    () => {
+      controlPanel = null;
+    },
+    arg.area,
+  );
+});
+
+ipcMain.on('close-control-panel', () => {
+  windowManager.closeWindow('controlPanel');
+});
+
+ipcMain.on('init-control-panel', (evt, arg) => {
+  console.log('[Main Process] In the "init-control-panel" event:');
+  console.log('Arguments: ', arg);
+  mainWindow && mainWindow.webContents.send('init-control-panel', arg);
+  mainMenu.window.webContents.send('init-control-panel', arg);
+});
+
+ipcMain.on('update-control-panel', (evt, arg) => {
+  console.log('[Main Process] In the "update-control-panel" event:');
+  console.log('Arguments: ', arg);
+  controlPanel && controlPanel.webContents.send('update-control-panel', arg);
+});
+
 ipcMain.on('stop-recording', () => {
-  mainWindow.webContents.send('stop-recording');
+  mainWindow && mainWindow.webContents.send('stop-recording');
   mainMenu.window.webContents.send('stop-recording');
 });
 
 ipcMain.on('pause-recording', () => {
-  mainWindow.webContents.send('pause-recording');
+  mainWindow && mainWindow.webContents.send('pause-recording');
   mainMenu.window.webContents.send('pause-recording');
 });
 
 ipcMain.on('toggle-webcam', () => {
-  mainWindow.webContents.send('toggle-webcam');
+  mainWindow && mainWindow.webContents.send('toggle-webcam');
   mainMenu.window.webContents.send('toggle-webcam');
 });
