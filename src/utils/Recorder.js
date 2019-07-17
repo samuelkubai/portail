@@ -140,14 +140,21 @@ class Recorder {
   }
 
   async record(source, options) {
+    console.log(`Recorder.record() Source => `, source);
     this.recorder = aperture();
     try {
+      const adjustedRecorderArea = Object.assign(source.recorderArea, {
+        y: source.recorderArea.y + (source.bounds.height - source.originalWorkArea.height) - 23,
+      });
+
       // Initialize recording options
       this.recording.options = {
-        cropArea: source.bounds,
+        cropArea: adjustedRecorderArea,
         highlightClicks: true,
         screenId: source.id,
       };
+
+      console.log(`Recorder.record() Recording options => `, this.recording);
 
       // Check whether we need audio
       if (options[Constants.MICROPHONE_TYPE].active) {

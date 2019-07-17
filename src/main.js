@@ -5,7 +5,13 @@ import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-insta
 import path from 'path';
 import WindowManager from './utils/WindowManager';
 
+let cropper;
 let controlPanel;
+let mainMenu;
+let mainWindow;
+
+const isDevMode = true;
+if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
 
 // Initialize the window manager
 const windowManager = new WindowManager([
@@ -13,51 +19,51 @@ const windowManager = new WindowManager([
     name: 'controlPanel',
     file: `file://${__dirname}/controls.html`,
     options: ({ area }) => {
-      console.log('[WindowManager]: Init => ', { area });
+      console.log('[WindowManager => ControlPanel]: Init => ', { area });
       return {
-        x: area.bounds.x + 16,
-        // eslint-disable-next-line no-mixed-operators
-        y: 48 + area.bounds.y,
+        x: area.workArea.x + 16,
+        y: 16 + area.workArea.y,
         width: 269,
         height: 42,
+        acceptFirstMouse: true,
         alwaysOnTop: true,
         frame: false,
-        focusable: true,
+        focusable: false,
+        hasShadow: false,
+        movable: false,
+        transparent: true,
+        resizable: false,
+      };
+    },
+  },
+  {
+    name: 'cropper',
+    file: `file://${__dirname}/cropper.html`,
+    options: ({ area }) => {
+      console.log('[WindowManager => Cropper]: Init => ', { area });
+      return {
+        x: area.workArea.x,
+        y: area.workArea.y,
+        width: area.workArea.width,
+        height: area.workArea.height,
+        alwaysOnTop: true,
+        frame: false,
+        focusable: false,
         hasShadow: false,
         acceptFirstMouse: true,
         movable: false,
         transparent: true,
+        resizable: false,
       };
     },
   },
 ]);
 
-// TODO: Activate the menubar here.
-let mainMenu;
-
-const createMenuBar = () => {
-  mainMenu = menubar({
-    browserWindow: {
-      width: 320,
-      height: 450,
-    },
-    preloadWindow: true,
-    icon: path.join(__dirname, 'assets/icon.png'),
-    index: `file://${__dirname}/index.html`,
-  });
-};
-
-let mainWindow;
-
-const isDevMode = process.execPath.match(/[\\/]electron/);
-
-if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
-
 const createWindow = async () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 320,
+    height: 450,
   });
 
   // and load the index.html of the app.
@@ -78,11 +84,24 @@ const createWindow = async () => {
   });
 };
 
+const createMenuBar = () => {
+  mainMenu = menubar({
+    browserWindow: {
+      width: 320,
+      height: 450,
+    },
+    preloadWindow: true,
+    icon: path.join(__dirname, 'assets/icon.png'),
+    index: `file://${__dirname}/index.html`,
+  });
+};
+
+// TODO: Review this event listeners.
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-  // createWindow();
+  createWindow();
   createMenuBar();
 });
 
@@ -95,7 +114,6 @@ app.on('window-all-closed', () => {
   }
 });
 
-// TODO: Review this event listeners.
 app.on('activate', () => {
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
@@ -111,6 +129,39 @@ ipcMain.on('cancel-recording', () => {
   mainMenu.window.webContents.send('cancel-recording');
 });
 
+ipcMain.on('close-control-panel', () => {
+  windowManager.closeWindow('controlPanel');
+});
+
+ipcMain.on('deactivate-cropping', () => {
+  console.log('[Main Process] In the "deactivate-cropping" event:');
+  cropper && cropper.setIgnoreMouseEvents(true, { forward: true });
+});
+
+ipcMain.on('close-cropper', () => {
+  console.log('[Main Process] In the "close-cropper" event:');
+  windowManager.closeWindow('cropper');
+});
+
+ipcMain.on('finish-cropping', (evt, arg) => {
+  console.log('[Main Process] In the "finish-cropping" event:');
+  console.log('Arguments: ', arg);
+  mainWindow && mainWindow.webContents.send('cropping-finished', arg);
+  mainMenu.window.webContents.send('cropping-finished', arg);
+});
+
+ipcMain.on('init-control-panel', (evt, arg) => {
+  console.log('[Main Process] In the "init-control-panel" event:');
+  console.log('Arguments: ', arg);
+  mainWindow && mainWindow.webContents.send('init-control-panel', arg);
+  mainMenu.window.webContents.send('init-control-panel', arg);
+});
+
+ipcMain.on('pause-recording', () => {
+  mainWindow && mainWindow.webContents.send('pause-recording');
+  mainMenu.window.webContents.send('pause-recording');
+});
+
 ipcMain.on('show-control-panel', (evt, arg) => {
   controlPanel = windowManager.createOrShowWindow(
     'controlPanel',
@@ -121,34 +172,32 @@ ipcMain.on('show-control-panel', (evt, arg) => {
   );
 });
 
-ipcMain.on('close-control-panel', () => {
-  windowManager.closeWindow('controlPanel');
+ipcMain.on('stop-recording', () => {
+  mainWindow && mainWindow.webContents.send('stop-recording');
+  mainMenu.window.webContents.send('stop-recording');
 });
 
-ipcMain.on('init-control-panel', (evt, arg) => {
-  console.log('[Main Process] In the "init-control-panel" event:');
-  console.log('Arguments: ', arg);
-  mainWindow && mainWindow.webContents.send('init-control-panel', arg);
-  mainMenu.window.webContents.send('init-control-panel', arg);
+ipcMain.on('toggle-webcam', () => {
+  mainWindow && mainWindow.webContents.send('toggle-webcam');
+  mainMenu.window.webContents.send('toggle-webcam');
+});
+
+ipcMain.on('toggle-cropper', (evt, arg) => {
+  console.log(`[Main process] Toggle cropper`);
+  console.log(`Arguments passed`, arg);
+
+  cropper = windowManager.createOrShowWindow(
+    'cropper',
+    () => {
+      cropper = null;
+    },
+    arg.area,
+    isDevMode,
+  );
 });
 
 ipcMain.on('update-control-panel', (evt, arg) => {
   console.log('[Main Process] In the "update-control-panel" event:');
   console.log('Arguments: ', arg);
   controlPanel && controlPanel.webContents.send('update-control-panel', arg);
-});
-
-ipcMain.on('stop-recording', () => {
-  mainWindow && mainWindow.webContents.send('stop-recording');
-  mainMenu.window.webContents.send('stop-recording');
-});
-
-ipcMain.on('pause-recording', () => {
-  mainWindow && mainWindow.webContents.send('pause-recording');
-  mainMenu.window.webContents.send('pause-recording');
-});
-
-ipcMain.on('toggle-webcam', () => {
-  mainWindow && mainWindow.webContents.send('toggle-webcam');
-  mainMenu.window.webContents.send('toggle-webcam');
 });

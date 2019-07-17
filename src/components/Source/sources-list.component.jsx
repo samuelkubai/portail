@@ -16,8 +16,8 @@ export default class SourcesList extends Component {
         </li>
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <li
-          onClick={() => { onSelect('windows'); }}
-          className={`c-source ${source === 'windows' ? 'c-source--active' : ''}`}
+          onClick={() => { onSelect('custom'); }}
+          className={`c-source ${source === 'custom' ? 'c-source--active' : ''}`}
         >
           <div className="c-source__label">Custom</div>
           <div className="c-source__action">Select Area</div>

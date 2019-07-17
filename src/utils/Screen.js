@@ -1,9 +1,11 @@
 import electron, { desktopCapturer, remote } from 'electron';
+import aperture from 'aperture';
 
 let webcamPlayer = null;
 
 export default class Screen {
   static getAllWindows(cb) {
+    aperture.screens().then(console.log);
     // Get electron windows
     const displays = electron.screen.getAllDisplays();
 
@@ -17,42 +19,17 @@ export default class Screen {
           return Object.assign(source, display);
         });
       }
+      console.log(hydratedSources);
       cb(hydratedSources, error);
     });
   }
 
-  static async getAllApplications(cb) {
-    desktopCapturer.getSources({ types: ['screen', 'window'] }, (error, sources) => {
-      sources.forEach(async (source) => {
-        const media = await window.navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            mandatory: {
-              chromeMediaSource: 'desktop',
-              chromeMediaSourceId: source.id,
-              minWidth: 1280,
-              maxWidth: 1280,
-              minHeight: 720,
-              maxHeight: 720,
-            },
-          },
-        });
-
-        console.log(media);
-      });
-
-      cb(sources, error);
-    });
-  }
-
   static createWebcamPlayer(area) {
-    const height = area.bounds.height;
-
     // Create the browser window.
     webcamPlayer = new remote.BrowserWindow({
-      x: area.bounds.x + 16,
+      x: area.workArea.x + 16,
       // eslint-disable-next-line no-mixed-operators
-      y: height - 200 - 58 + area.bounds.y,
+      y: area.workArea.height - 200 - 16 + area.workArea.y,
       width: 200,
       height: 200,
       alwaysOnTop: true,

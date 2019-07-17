@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { screen, ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
 import * as Constants from '../../utils/Constants';
@@ -17,13 +17,12 @@ export default class Home extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      cancelRecording: false,
-      selectingSource: false,
       currentSource: 'desktop',
-      selectedSource: null,
-      sourceType: 'desktop',
       recording: false,
       recordingPaused: false,
+      selectedSource: null,
+      sourceType: 'desktop',
+      selectingSource: false,
       inputState: [
         {
           active: true,
@@ -50,7 +49,6 @@ export default class Home extends Component {
     this.selectSource.bind(this);
     this.shouldSelectSource.bind(this);
     this.renderHome.bind(this);
-    this.renderSelectApp.bind(this);
     this.renderSelectWindow.bind(this);
     this.toggleRecording.bind(this);
     this.triggerRecordingSwitch.bind(this);
@@ -64,6 +62,40 @@ export default class Home extends Component {
         .stopCamera()
         .stopControlPanel()
         .resetAndCleanup();
+    });
+
+    ipcRenderer.on('cropping-finished', (evt, arg) => {
+      console.log('[Home Component Process] In the "cropping-finished" event:');
+      console.log('Arguments: ', arg);
+      const { selectedSource } = this.state;
+      const { state: { area, start } } = arg;
+
+      const updatedSource = Object.assign(
+        selectedSource,
+        {
+          originalWorkArea: selectedSource.workArea,
+          recorderArea: {
+            x: start.inverted.x,
+            y: start.inverted.y,
+            height: area.height,
+            width: area.width
+          },
+          workArea: {
+            x: start.x + selectedSource.workArea.x,
+            y: start.y + selectedSource.workArea.y,
+            height: area.height,
+            width: area.width
+          }
+        }
+      );
+      console.log(`Updated source => `, updatedSource);
+
+      this.setState(state => {
+        return Object.assign(state, { selectedSource: updatedSource });
+      }, () => {
+        ipcRenderer.send('deactivate-cropping');
+        this.triggerRecordingSwitch();
+      });
     });
 
     ipcRenderer.on('init-control-panel', () => {
@@ -126,6 +158,79 @@ export default class Home extends Component {
     return inputState.filter(i => i.type === type)[0];
   }
 
+  renderHome({ inputState, sourceType, recording}) {
+    return (
+      <div className="fragment">
+        <SourcesList
+          source={sourceType}
+          onSelect={(source) => { this.selectSourceType(source); }}
+        />
+        <InputList inputs={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
+        <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
+      </div>
+    );
+  }
+
+  renderSelectWindow() {
+    return (
+      <div className="fragment">
+        <Nav title="Select Window" onBack={() => { this.onBack(); }} />
+        <WindowList onSelect={(source) => { this.selectSource(source); }} />
+      </div>
+    );
+  }
+
+  shouldSelectSource() {
+    const { selectedSource, sourceType } = this.state;
+
+    if (selectedSource) {
+      return false;
+    }
+
+    if (sourceType === 'desktop') {
+      // Check if we have more that one source.
+      return screen.getAllDisplays().length > 1;
+    }
+
+    return true;
+  }
+
+  selectSource(source) {
+    console.log('Select the source', source);
+
+    const { sourceType } = this.state;
+
+    switch (sourceType) {
+      case 'desktop':
+        this.setState(state => (
+          Object.assign(state, {
+            selectedSource: source,
+            selectingSource: false,
+          })
+        ), () => {
+          this.triggerRecordingSwitch();
+          console.log('Toggle recording: ', { state: this.state });
+        });
+        break;
+      case 'custom':
+        this.setState(state => (
+          Object.assign(state, {
+            selectedSource: source,
+            selectingSource: false,
+          })
+        ), () => {
+          this.triggerCropper();
+          console.log('Trigger cropper: ', { state: this.state });
+        });
+        break;
+      default:
+    }
+  }
+
+  selectSourceType(source) {
+    this.setState(state => Object.assign(state, { sourceType: source }));
+  }
+
   toggleRecording(cb) {
     const { selectedSource, recording } = this.state;
 
@@ -134,7 +239,13 @@ export default class Home extends Component {
         .instance
         .defineArea(selectedSource)
         .registerOnCleanup(() => {
-          this.setState(state => Object.assign(state, { recording: false, selectedSource: null }), () => { cb && cb(); });
+          this.setState(
+            state => Object.assign(state, { recording: false, selectedSource: null }),
+            () => {
+              ipcRenderer.send('close-cropper');
+              cb && cb();
+            }
+          );
         })
         .setupCamera(this.retrieveInputFromState(Constants.CAMERA_TYPE))
         .setupAudio(this.retrieveInputFromState(Constants.MICROPHONE_TYPE))
@@ -152,126 +263,21 @@ export default class Home extends Component {
     }
   }
 
+  triggerCropper() {
+    const { selectedSource } = this.state;
+
+    Director
+      .instance
+      .defineArea(selectedSource)
+      .selectArea();
+  }
+
   triggerRecordingSwitch() {
     if (this.shouldSelectSource()) {
       this.setState(state => Object.assign(state, { selectingSource: true }));
     } else {
       this.toggleRecording();
     }
-  }
-
-  shouldSelectSource() {
-    const { selectedSource, sourceType } = this.state;
-
-    if (selectedSource) {
-      return false;
-    }
-
-    switch (sourceType) {
-      case 'desktop':
-        // TODO: Check if we have more that one source.
-        return true;
-      case 'windows':
-        // TODO: Needs to select available applications.
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  selectSource(source) {
-    const { sourceType, currentSource } = this.state;
-
-    switch (sourceType) {
-      case 'desktop':
-        this.setState(state => (
-          Object.assign(state, {
-            selectedSource: source,
-            selectingSource: false,
-          })
-        ), () => {
-          this.triggerRecordingSwitch();
-          console.log('Toggle recording', { state: this.state });
-        });
-        break;
-      case 'windows':
-        if (currentSource === 'windows') {
-          this.setState(state => (
-            Object.assign(state, {
-              selectedSource: source,
-              selectingSource: false,
-              currentSource: 'desktop',
-            })
-          ), () => {
-            this.triggerRecordingSwitch();
-            console.log('Toggle recording', { state: this.state });
-          });
-          break;
-        }
-        this.setState(state => (
-          Object.assign(state, {
-            currentSource: 'windows',
-          })
-        ));
-        break;
-      default:
-    }
-
-    console.log('Select the source', source);
-  }
-
-  selectSourceType(source) {
-    this.setState(state => Object.assign(state, { sourceType: source }));
-  }
-
-  renderHome({ inputState, sourceType, recording}) {
-    return (
-      <div className="fragment">
-        <SourcesList
-          source={sourceType}
-          onSelect={(source) => { this.selectSourceType(source); }}
-        />
-        <InputList inputs={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
-        <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
-      </div>
-    );
-  }
-
-  renderSelectSource({ currentSource, sourceType }) {
-    return (
-      <div className="fragment">
-        {
-          (sourceType === 'desktop') ?
-            this.renderSelectWindow() :
-            (sourceType === 'windows' && currentSource === 'desktop') ?
-              this.renderSelectWindow() :
-              this.renderSelectApp()
-        }
-      </div>
-    );
-  }
-
-  renderSelectApp() {
-    return (
-      <div className="fragment">
-        <Nav title="Select App" onBack={() => { this.onBack(); }} />
-        <ApplicationList onSelect={(source) => {this.selectSource(source)}} />
-      </div>
-    );
-  }
-
-  renderSelectWindow() {
-    return (
-      <div className="fragment">
-        <Nav title="Select Window" onBack={() => { this.onBack(); }} />
-        <WindowList onSelect={(source) => { this.selectSource(source); }} />
-      </div>
-    );
-  }
-
-  onReset() {
-    console.log('ACTION: Reset the application');
-    this.toggleRecording();
   }
 
   updateInputState({ type, active, choice, options }, cb) {
@@ -300,7 +306,7 @@ export default class Home extends Component {
   }
 
   render() {
-    const { currentSource, inputState, recording, selectingSource, sourceType } = this.state;
+    const { inputState, recording, selectingSource, sourceType } = this.state;
 
     return (
       <div className="pg-home">
@@ -308,7 +314,7 @@ export default class Home extends Component {
         {
           !selectingSource ?
             this.renderHome({ inputState, sourceType, recording }) :
-            this.renderSelectSource({ currentSource, sourceType, selectingSource })
+            this.renderSelectWindow()
         }
       </div>
     );

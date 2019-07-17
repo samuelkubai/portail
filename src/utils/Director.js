@@ -5,6 +5,7 @@
 // 4. Kick-off recording.
 import * as Constants from './Constants';
 import Screen from './Screen';
+import Cropper from './Cropper';
 import Controls from './Controls';
 import Recorder from './Recorder';
 
@@ -46,6 +47,11 @@ class Director {
     // Do some cleanup here
     this.onCleanup.forEach((cb) => cb());
     return this;
+  }
+
+  selectArea() {
+    console.log(`Director.instance.selectArea(): Launch cropper`);
+    Cropper.launchCropper(this.area);
   }
 
   setup(cb) {
