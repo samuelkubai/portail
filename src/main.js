@@ -247,6 +247,10 @@ ipcMain.on('toggle-cropper', (evt, arg) => {
   );
 });
 
+ipcMain.on('quit-application', () => {
+  app.quit();
+});
+
 ipcMain.on('update-control-panel', (evt, arg) => {
   console.log('[Main Process] In the "update-control-panel" event:');
   console.log('Arguments: ', arg);

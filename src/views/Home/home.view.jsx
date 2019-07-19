@@ -2,7 +2,6 @@ import { screen, ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
 import * as Constants from '../../utils/Constants';
-import ApplicationList from '../../components/ApplicationList/application-list.component';
 import Button from '../../components/Button/button.component';
 import InputList from '../../components/Input/input-list.component';
 import Nav from '../../components/Nav/nav.component';
@@ -13,6 +12,7 @@ import Director from '../../utils/Director';
 import MicrophoneIcon from '../../icons/microphone.icon';
 import VideoIcon from '../../icons/video.icon';
 import SettingsStore from '../../utils/Settings';
+import Screen from '../../utils/Screen';
 
 export default class Home extends Component {
   constructor(props) {
@@ -201,7 +201,11 @@ export default class Home extends Component {
           source={sourceType}
           onSelect={(source) => { this.selectSourceType(source); }}
         />
-        <InputList inputs={inputState} onUpdate={(arg) => this.updateInputState(arg)} />
+        <InputList
+          inputs={inputState}
+          onSettings={() => Home.toggleSettingsWindow()}
+          onUpdate={(arg) => this.updateInputState(arg)}
+        />
         <Button onClick={() => this.triggerRecordingSwitch()} recording={recording} />
       </div>
     );
@@ -316,8 +320,14 @@ export default class Home extends Component {
     }
   }
 
-  static toggleSettingsWindow(area) {
-    ipcRenderer.send('toggle-settings', { area });
+  static toggleSettingsWindow() {
+    Screen.getPrimaryWindow((area, error) => {
+      console.log(`Title.launchSetting(): Primary window: `, area);
+      console.log(`Title.launchSetting(): Error: `, error);
+      if (!error) {
+        ipcRenderer.send('toggle-settings', { area });
+      }
+    });
   }
 
   updateInputState({ type, active, choice, options }, cb) {
@@ -350,7 +360,7 @@ export default class Home extends Component {
 
     return (
       <div className="pg-home">
-        <Title onSettings={area => Home.toggleSettingsWindow(area)} />
+        <Title onSettings={() => Home.toggleSettingsWindow()} />
         {
           !selectingSource ?
             this.renderHome({ inputState, sourceType, recording }) :

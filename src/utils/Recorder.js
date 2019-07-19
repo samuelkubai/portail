@@ -1,7 +1,9 @@
 import { concat } from 'video-stitch';
-import * as Constants from '../utils/Constants';
 import aperture from 'aperture';
 import fs from 'fs';
+
+import SettingsStore from '../utils/Settings';
+import * as Constants from '../utils/Constants';
 
 class Recorder {
   static deleteClip(clipPath) {
@@ -30,6 +32,23 @@ class Recorder {
     firebase.initializeApp(firebaseConfig);
 
     this.firebaseInitialized = true;
+  }
+
+  static async saveRecording(data) {
+    // TODO: Integrate external storage
+    const filePath = `${SettingsStore.instance.store.get(
+      'portailDir',
+    )}/output-${new Date().getTime()}.mp4`;
+    return new Promise((resolve, reject) => {
+      fs.writeFile(filePath, data, (err) => {
+        if (err) {
+          console.log(`Failed to save the recording here: ${filePath}`, err);
+          reject(err);
+        }
+        console.log(`Successfully saved the recording here: ${filePath}`);
+        resolve(filePath);
+      });
+    });
   }
 
   static async saveToFirebase(blob) {
@@ -95,6 +114,21 @@ class Recorder {
     }
   }
 
+  cleanupRecording() {
+    try {
+      // Delete the recording clips
+      this.recording.clips.forEach((clip) => {
+        fs.unlinkSync(clip);
+      });
+      console.log(`Successfully deleted the recording clips.`);
+    } catch (e) {
+      console.log(`Failed to delete the recording clips: `, e);
+    }
+
+    // Reinitialize the recording object
+    this.recording.clips = [];
+  }
+
   async compileRecording() {
     // Combine the videos if more than one clip
     if (this.recording.clips.length > 1) {
@@ -117,10 +151,9 @@ class Recorder {
           return;
         }
 
-        const file = new Blob([data], { type: 'video/mp4' });
-        console.log(`Created a blob: ${file}`);
-        await Recorder.saveToFirebase(data);
-        this.recording.clips = [];
+        await Recorder.saveRecording(data);
+        // await Recorder.saveToFirebase(data);
+        this.cleanupRecording();
       } catch (e) {
         console.error(e);
       }

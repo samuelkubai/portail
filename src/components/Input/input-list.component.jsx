@@ -35,12 +35,12 @@ export default class InputList extends Component {
   }
 
   render() {
-    const { inputs, onUpdate } = this.props;
+    const { inputs, onSettings, onUpdate } = this.props;
 
     return (
       <div className="c-input-list">
         <div className="c-input-list__title">
-          <button className="c-input-list__link">Advanced Settings</button>
+          <button className="c-input-list__link" onClick={() => onSettings()}>Advanced Settings</button>
         </div>
         {
           // eslint-disable-next-line react/no-array-index-key
