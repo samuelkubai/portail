@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { enableLiveReload } from 'electron-compile';
 import { menubar } from 'menubar';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
@@ -9,6 +9,7 @@ let cropper;
 let controlPanel;
 let mainMenu;
 let mainWindow;
+let settingsWindow;
 
 const isDevMode = true;
 if (isDevMode) enableLiveReload({ strategy: 'react-hmr' });
@@ -30,6 +31,7 @@ const windowManager = new WindowManager([
         frame: false,
         focusable: false,
         hasShadow: false,
+        maximizable: false,
         movable: false,
         transparent: true,
         resizable: false,
@@ -54,6 +56,22 @@ const windowManager = new WindowManager([
         movable: false,
         transparent: true,
         resizable: false,
+      };
+    },
+  },
+  {
+    name: 'settings',
+    file: `file://${__dirname}/settings.html`,
+    options: ({ area }) => {
+      console.log('[WindowManager => Settings]: Init => ', { area });
+      return {
+        x: area.workArea.x / 2,
+        y: area.workArea.y / 2,
+        width: 483,
+        height: 483,
+        acceptFirstMouse: true,
+        alwaysOnTop: false,
+        title: 'Settings',
       };
     },
   },
@@ -138,6 +156,13 @@ ipcMain.on('deactivate-cropping', () => {
   cropper && cropper.setIgnoreMouseEvents(true, { forward: true });
 });
 
+ipcMain.on('cancel-cropper', () => {
+  console.log('[Main Process] In the "cancel-cropper" event:');
+  windowManager.closeWindow('cropper');
+  mainWindow && mainWindow.webContents.send('cancel-cropper');
+  mainMenu.window.webContents.send('cancel-cropper');
+});
+
 ipcMain.on('close-cropper', () => {
   console.log('[Main Process] In the "close-cropper" event:');
   windowManager.closeWindow('cropper');
@@ -162,6 +187,18 @@ ipcMain.on('pause-recording', () => {
   mainMenu.window.webContents.send('pause-recording');
 });
 
+ipcMain.on('pick-destination', () => {
+  const files = dialog.showOpenDialog(settingsWindow, {
+    properties: ['createDirectory', 'openDirectory'],
+    buttonLabel: 'Select',
+    title: 'Select destination for recordings',
+  });
+
+  if (files && files.length > 0) {
+    settingsWindow.webContents.send('destination-selected', { file: files[0] });
+  }
+});
+
 ipcMain.on('show-control-panel', (evt, arg) => {
   controlPanel = windowManager.createOrShowWindow(
     'controlPanel',
@@ -175,6 +212,20 @@ ipcMain.on('show-control-panel', (evt, arg) => {
 ipcMain.on('stop-recording', () => {
   mainWindow && mainWindow.webContents.send('stop-recording');
   mainMenu.window.webContents.send('stop-recording');
+});
+
+ipcMain.on('toggle-settings', (evt, arg) => {
+  console.log('[Main Process] In the "toggle-settings" event:');
+  console.log('Arguments: ', arg);
+  console.log('[Main Process] Create or show the settings window');
+  settingsWindow = windowManager.createOrShowWindow(
+    'settings',
+    () => {
+      console.log('Closed the settings window');
+    },
+    arg.area,
+    true,
+  );
 });
 
 ipcMain.on('toggle-webcam', () => {

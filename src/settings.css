@@ -1,0 +1,64 @@
+* {
+    font-family: Open Sans, serif;
+    box-sizing: border-box;
+}
+
+.fragment {
+    height: 100%;
+    width: 100%;
+}
+
+ul.c-settings {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.c-settings-option {
+    height: 64px;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid #B5C4CF;
+    padding: 0 18px;
+}
+
+.c-settings-option__title {
+    color: #1e2834;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 19px;
+}
+
+.c-settings-option__description {
+    color: #B5C4CF;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 16px;
+    margin-top: 4px;
+}
+
+.c-settings-option__file-explorer {
+    height: 27px;
+    width: 89px;
+
+    background: #FFFFFF;
+    border: 1px solid #B5C4CF;
+    border-radius: 4px;
+}
+
+.c-settings-option__switch {
+    height: 24px;
+    width: 24px;
+}
+
+.c-settings-option__select {
+    height: 27px;
+
+    background: #FFFFFF;
+    border: 1px solid #B5C4CF;
+    border-radius: 4px;
+}

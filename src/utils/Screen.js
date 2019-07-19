@@ -5,7 +5,6 @@ let webcamPlayer = null;
 
 export default class Screen {
   static getAllWindows(cb) {
-    aperture.screens().then(console.log);
     // Get electron windows
     const displays = electron.screen.getAllDisplays();
 
@@ -19,8 +18,21 @@ export default class Screen {
           return Object.assign(source, display);
         });
       }
-      console.log(hydratedSources);
+      console.log(`Screen::getAllWindows()`, hydratedSources);
       cb(hydratedSources, error);
+    });
+  }
+
+  static getPrimaryWindow(cb) {
+    const display = electron.screen.getPrimaryDisplay();
+    console.log(`Screen::getPrimaryWindow() Get electron display`, display);
+    desktopCapturer.getSources({ types: ['screen'] }, (error, sources) => {
+      console.log(`Screen::getPrimaryWindow() Captured sources: `, sources);
+      const displayInfo = sources.filter((source) => parseInt(source.display_id) === display.id)[0];
+      const hydratedDisplay = Object.assign(displayInfo, display);
+
+      console.log(`Screen::getPrimaryWindow()`, hydratedDisplay);
+      cb(hydratedDisplay, error);
     });
   }
 

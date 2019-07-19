@@ -4,6 +4,8 @@
 import { ipcRenderer } from 'electron';
 import React, { Component } from 'react';
 
+const count = 5;
+
 export default class Cropper extends Component {
   static getCanvas() {
     return document.getElementById('cropper-canvas');
@@ -18,9 +20,11 @@ export default class Cropper extends Component {
     this.state = {
       area: { width: 0, height: 0 },
       canvas: { height: 0, width: 0 },
-      countdown: null,
-      drag: false,
       start: { x: 0, y: 0 },
+      completedCropping: false,
+      countdown: null,
+      counter: 5,
+      drag: false,
       thickness: 2,
     };
 
@@ -30,6 +34,13 @@ export default class Cropper extends Component {
     this.startArea.bind(this);
     this.triggerCountdown.bind(this);
     this.markCroppingCompleted.bind(this);
+    this.resetCounter.bind(this);
+    this.renderPrompt.bind(this);
+    this.updateCounter.bind(this);
+  }
+
+  static cancelCropping() {
+    ipcRenderer.send('cancel-cropper');
   }
 
   componentDidMount() {
@@ -103,7 +114,12 @@ export default class Cropper extends Component {
 
   markCroppingCompleted() {
     console.log(`Cropper.markCroppingCompleted() => Called`);
-    ipcRenderer.send('finish-cropping', { state: this.state });
+    this.resetCounter();
+    this.setState(state => {
+      return Object.assign(state, { completedCropping: true })
+    }, () => {
+      ipcRenderer.send('finish-cropping', { state: this.state });
+    });
   }
 
   moveDrag(evt) {
@@ -143,9 +159,7 @@ export default class Cropper extends Component {
 
   startArea(evt) {
     console.log(`Cropper.startArea() => Called`);
-    const { countdown } = this.state;
-
-    clearTimeout(countdown);
+    this.resetCounter();
 
     const boundingClientRect = Cropper.getCanvas().getBoundingClientRect();
     const start = {
@@ -167,7 +181,14 @@ export default class Cropper extends Component {
 
   triggerCountdown() {
     console.log(`Cropper.triggerCountdown() => Called`);
-    const c = setTimeout(() => this.markCroppingCompleted(), 3000);
+    const c = setInterval(
+      () => {
+        if (!this.updateCounter()) {
+          this.markCroppingCompleted()
+        }
+      },
+      1000
+    );
 
     this.setState(state => {
       return Object.assign(state, {
@@ -176,17 +197,79 @@ export default class Cropper extends Component {
     })
   }
 
-  render() {
-    const { canvas: { height, width } } = this.state;
+  resetCounter() {
+    const { countdown } = this.state;
+
+    clearInterval(countdown);
+    this.setState(state => Object.assign(state, { countdown: null, counter: count }));
+  }
+
+  updateCounter() {
+    const { counter } = this.state;
+
+    if (counter > 1) {
+      this.setState(state => Object.assign(state, { counter: counter - 1 }));
+      return true;
+    }
+
+    return false;
+  }
+
+  renderCounter() {
+    const { counter } = this.state;
+
     return (
-      <canvas
-        width={width}
-        height={height}
-        id="cropper-canvas"
-        onMouseDown={evt => { this.startArea(evt) }}
-        onMouseMove={evt => { this.moveDrag(evt) }}
-        onMouseUp={() => { this.endDrag() }}
-      />
+      <div className="c-prompt">
+        <div className="c-prompt__text">
+          About to start recording in:
+        </div>
+
+        <div className="c-prompt__action c-prompt__action--inverted">
+          { counter }
+        </div>
+      </div>
+    )
+  }
+
+  renderPrompt({ onCancel }) {
+    return (
+      <div className="c-prompt">
+        <div className="c-prompt__text">
+          Select area to record
+        </div>
+
+        <div className="c-prompt__action" onClick={evt => (onCancel(evt))}>
+          <svg width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clip-path="url(#clip0)">
+              <path d="M7.061 6l4.72-4.718A.75.75 0 1 0 10.718.221L6 4.94 1.281.22A.75.75 0 1 0 .22 1.283l4.719 4.719-4.72 4.719a.75.75 0 1 0 1.062 1.06l4.72-4.718 4.718 4.719a.748.748 0 0 0 1.061 0 .75.75 0 0 0 0-1.062L7.061 6.002z" fill="#1E2834"/>
+            </g>
+            <defs>
+              <clipPath id="clip0">
+                <path fill="#fff" d="M0 0h12v12H0z"/>
+              </clipPath>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    )
+  }
+
+  render() {
+    const { canvas: { height, width }, drag, completedCropping, countdown } = this.state;
+    return (
+      <div className="fragment">
+        <canvas
+          width={width}
+          height={height}
+          id="cropper-canvas"
+          onMouseDown={evt => { this.startArea(evt) }}
+          onMouseMove={evt => { this.moveDrag(evt) }}
+          onMouseUp={() => { this.endDrag() }}
+        />
+
+        { !drag && !completedCropping && !countdown &&  this.renderPrompt({ onCancel: Cropper.cancelCropping }) }
+        { !drag && !completedCropping && countdown &&  this.renderCounter() }
+      </div>
     );
   }
 }

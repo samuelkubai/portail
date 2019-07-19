@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
-    <link rel="stylesheet" href="cropper.css">
+    <link rel="stylesheet" href="settings.css">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
 </head>
 <style>
@@ -11,18 +11,17 @@
         width: 100vw;
         height: 100vh;
 
-        cursor: crosshair;
         margin: 0;
         overflow: hidden;
     }
 
-    #cropper {
+    #settings {
         height: 100%;
         width: 100%;
     }
 </style>
 <body>
-<div id="cropper"></div>
+<div id="settings"></div>
 </body>
 
 <script type="text/jsx">
@@ -31,8 +30,8 @@
   import {AppContainer} from 'react-hot-loader';
 
   const render = () => {
-    const Cropper = require('./views/Cropper/cropper.view').default;
-    ReactDOM.render(<AppContainer><Cropper /></AppContainer>, document.getElementById('cropper'));
+    const Settings = require('./views/Settings/settings.view').default;
+    ReactDOM.render(<AppContainer><Settings /></AppContainer>, document.getElementById('settings'));
   };
 
   render();

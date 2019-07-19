@@ -1,0 +1,60 @@
+* {
+    font-family: Open Sans, serif;
+}
+
+.fragment {
+    height: 100%;
+    width: 100%;
+}
+
+.c-prompt {
+    position: absolute;
+    left: 50%;
+    bottom: 48px;
+
+    height: 42px;
+    width: 269px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: #DFE6EB;
+    border-radius: 42px;
+    margin-left: calc(((269px + 12px + 24px)/2 * -1));
+    padding: 5px 12px 5px 24px;
+}
+
+.c-prompt__text {
+    color: #1e2834;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.c-prompt__action {
+    width: 32px;
+    height: 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #CDD6DF;
+    border: 1px solid #5C6B7B;
+    border-radius: 50%;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.c-prompt__action--inverted {
+    background: #1E2834;
+    border: 1px solid #C7000F;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+}
+
+.c-prompt__action svg {
+    height: 12px;
+    width: 12px;
+}

@@ -12,6 +12,7 @@ import WindowList from '../../components/WindowsList/window-list.component';
 import Director from '../../utils/Director';
 import MicrophoneIcon from '../../icons/microphone.icon';
 import VideoIcon from '../../icons/video.icon';
+import SettingsStore from '../../utils/Settings';
 
 export default class Home extends Component {
   constructor(props) {
@@ -45,6 +46,8 @@ export default class Home extends Component {
         }
       ]
     };
+
+    this.init.bind(this);
     this.onBack.bind(this);
     this.selectSource.bind(this);
     this.shouldSelectSource.bind(this);
@@ -54,6 +57,12 @@ export default class Home extends Component {
     this.triggerRecordingSwitch.bind(this);
     this.updateInputState.bind(this);
     this.retrieveInputFromState.bind(this);
+
+    ipcRenderer.on('cancel-cropper', () => {
+      this.setState(state => {
+        return Object.assign(state, { recording: false, selectedSource: null });
+      });
+    });
 
     ipcRenderer.on('cancel-recording', () => {
       Director
@@ -135,6 +144,33 @@ export default class Home extends Component {
             });
           }
         );
+    });
+  }
+
+  componentDidMount() {
+    // Initialization code
+    this.init();
+  }
+
+  init() {
+    const { inputState } = this.state;
+
+    inputState.forEach(input => {
+      if (input.type === Constants.MICROPHONE_TYPE) {
+        this.updateInputState({
+          active: SettingsStore.instance.store.get('activeAudio'),
+          choice: SettingsStore.instance.store.get('audioSource'),
+          type: Constants.MICROPHONE_TYPE,
+        })
+      }
+
+      if (input.type === Constants.CAMERA_TYPE) {
+        this.updateInputState({
+          active: SettingsStore.instance.store.get('activeVideo'),
+          choice: SettingsStore.instance.store.get('videoSource'),
+          type: Constants.CAMERA_TYPE,
+        })
+      }
     });
   }
 
@@ -280,6 +316,10 @@ export default class Home extends Component {
     }
   }
 
+  static toggleSettingsWindow(area) {
+    ipcRenderer.send('toggle-settings', { area });
+  }
+
   updateInputState({ type, active, choice, options }, cb) {
     console.log(`updateInputState(): type: ${type} active: ${active} choice ${choice}`);
 
@@ -310,7 +350,7 @@ export default class Home extends Component {
 
     return (
       <div className="pg-home">
-        <Title />
+        <Title onSettings={area => Home.toggleSettingsWindow(area)} />
         {
           !selectingSource ?
             this.renderHome({ inputState, sourceType, recording }) :

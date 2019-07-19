@@ -53,6 +53,7 @@ class WindowManager {
     // Emitted when the window is closed.
     window.on('closed', () => {
       onClose();
+      this.windows[name] = null;
     });
 
     // Add to the windows list
@@ -64,7 +65,6 @@ class WindowManager {
   closeWindow(name) {
     const window = this.windows[name];
     window && window.close();
-    this.windows[name] = null;
   }
 
   hideWindow(name) {
