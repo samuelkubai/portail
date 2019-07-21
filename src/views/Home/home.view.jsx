@@ -13,6 +13,7 @@ import MicrophoneIcon from '../../icons/microphone.icon';
 import VideoIcon from '../../icons/video.icon';
 import SettingsStore from '../../utils/Settings';
 import Screen from '../../utils/Screen';
+import SentryUtility from '../../utils/SentryUtility';
 
 export default class Home extends Component {
   constructor(props) {
@@ -150,6 +151,8 @@ export default class Home extends Component {
   componentDidMount() {
     // Initialization code
     this.init();
+    // Track exceptions
+    SentryUtility.instance.track();
   }
 
   init() {

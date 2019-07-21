@@ -1,9 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { enableLiveReload } from 'electron-compile';
 import { menubar } from 'menubar';
+const { enforceMacOSAppLocation } = require('electron-util');
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import path from 'path';
 import WindowManager from './utils/WindowManager';
+import SentryUtility from './utils/SentryUtility';
+import { initializeAnalytics } from './utils/Analytics';
 
 let cropper;
 let controlPanel;
@@ -119,7 +122,17 @@ const createMenuBar = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-  createWindow();
+  // Ensure the app is in the Applications folder
+  enforceMacOSAppLocation();
+
+  // Initialize Google analytics
+  initializeAnalytics();
+
+  // Track any exceptions to sentry
+  SentryUtility.instance.track();
+
+  // Initialize the application
+  // createWindow();
   createMenuBar();
 });
 
